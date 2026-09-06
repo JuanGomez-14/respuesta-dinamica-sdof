@@ -1,0 +1,14 @@
+# Dependencias de la plataforma de cálculo de respuesta dinámica
+# Instalación:  pip install -r requirements.txt
+
+numpy>=1.24          # álgebra y manejo de arreglos
+scipy>=1.10          # filtros de señal y búsqueda de raíces (aislamiento)
+matplotlib>=3.7      # generación de todas las figuras
+pandas>=2.0          # tablas de la interfaz gráfica
+openpyxl>=3.1        # lectura de tablas de ensayo en Excel (.xlsx)
+
+# --- Opcionales (no se necesitan para calcular, pero sí para estas funciones) ---
+streamlit>=1.49      # interfaz gráfica interactiva (usa el parámetro width= moderno)
+reportlab>=4.0       # generación del reporte técnico en PDF
+pillow>=10.0         # inserción de las figuras en el PDF
+pytest>=7.4          # batería de pruebas de verificación:  pytest -q

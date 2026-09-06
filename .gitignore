@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+salidas/figuras/
+salidas/*.csv
+
+# Basura del sistema
+.DS_Store
+
+# Documento del laboratorio: material de la universidad, no se publica
+Laboratorio-Respuesta-Dinamica-UdeM.pdf
+
+# Reporte PDF generado (se reconstruye con: make reporte)
+salidas/*.pdf

@@ -1,0 +1,14 @@
+# Configuración de la app.
+#
+# headless = true es lo que evita el prompt "Welcome to Streamlit! Email:" del
+# primer arranque, que dejaba la ventana esperando una respuesta que el usuario
+# no sabía que tenía que dar. A cambio Streamlit ya no abre el navegador solo,
+# así que de eso se encargan los lanzadores.
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#C8102E"
