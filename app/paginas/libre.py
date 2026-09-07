@@ -16,6 +16,7 @@ import streamlit as st
 from dinamica import identificar, leer_csv, vector_tiempo, vibracion_libre
 from dinamica.io_senales import leer_excel
 
+from ..formato import FORMATO_ENTRADA
 from ..estado import Proyecto
 from ..widgets import fila_de_resultados, figura
 
@@ -50,9 +51,9 @@ def _respuesta(proyecto: Proyecto) -> None:
 
     col_u0, col_v0, col_ciclos = st.columns(3)
     u0 = col_u0.number_input("Desplazamiento inicial u₀ [m]", value=0.02,
-                             format="%.5f", key="libre_u0")
+                             format=FORMATO_ENTRADA, key="libre_u0")
     v0 = col_v0.number_input("Velocidad inicial v₀ [m/s]", value=0.0,
-                             format="%.5f", key="libre_v0")
+                             format=FORMATO_ENTRADA, key="libre_v0")
     ciclos = col_ciclos.number_input("Ciclos a simular", value=10, min_value=1,
                                      step=1, key="libre_ciclos")
 
@@ -68,7 +69,8 @@ def _respuesta(proyecto: Proyecto) -> None:
         ("Tₙ", s.T_n, "s"),
         ("T_D (amortiguado)", s.T_D, "s"),
         ("|u|máx", r.u_max, "m"),
-        ("Decaimiento por ciclo", f"{np.exp(-2 * np.pi * s.zeta / np.sqrt(1 - s.zeta**2)) * 100:.2f}", "%"),
+        ("Decaimiento por ciclo",
+         (1 - np.exp(-2 * np.pi * s.zeta / np.sqrt(1 - s.zeta ** 2))) * 100, "%"),
     ])
 
     envolvente = u0 and np.exp(-s.zeta * s.omega_n * t) * abs(
@@ -76,7 +78,7 @@ def _respuesta(proyecto: Proyecto) -> None:
     figura([(t, r.u, "u(t)"),
             (t, envolvente, "envolvente ±"),
             (t, -envolvente, "")],
-           "Tiempo t [s]", "Desplazamiento u [m]")
+           "Tiempo t [s]", "Desplazamiento u [m]", clave="graf_libre_resp")
 
 
 # ---------------------------------------------------------------------------
@@ -114,9 +116,9 @@ def _identificacion(proyecto: Proyecto) -> None:
 
     col_min, col_max = st.columns(2)
     t_min = col_min.number_input("t mínimo a analizar [s]", value=float(t[0]),
-                                 format="%.4f", key="iden_tmin", min_value=None)
+                                 format=FORMATO_ENTRADA, key="iden_tmin", min_value=None)
     t_max = col_max.number_input("t máximo a analizar [s]", value=float(t[-1]),
-                                 format="%.4f", key="iden_tmax", min_value=None)
+                                 format=FORMATO_ENTRADA, key="iden_tmax", min_value=None)
     dentro = (t >= t_min) & (t <= t_max)
     if dentro.sum() < 5:
         st.error("Quedan menos de 5 puntos en ese rango de tiempo.")
@@ -130,6 +132,7 @@ def _identificacion(proyecto: Proyecto) -> None:
         return
 
     figura([(t, u, "datos medidos")], "Tiempo t [s]", "u",
+           clave="graf_iden",
            puntos=[([p.t for p in r.picos], [p.u for p in r.picos],
                     f"{len(r.picos)} picos detectados")] if r.picos else None)
 
@@ -142,7 +145,7 @@ def _identificacion(proyecto: Proyecto) -> None:
         ("Tₙ identificado", r.T_n, "s"),
         ("fₙ", r.f_n, "Hz"),
         ("ωₙ", r.omega_n, "rad/s"),
-        ("ζ identificado", f"{r.zeta * 100:.4g}" if r.zeta else "—", "%"),
+        ("ζ identificado", r.zeta * 100 if r.zeta else None, "%"),
     ])
     st.caption(r.detalle)
 

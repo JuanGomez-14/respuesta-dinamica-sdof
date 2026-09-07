@@ -18,6 +18,7 @@ import streamlit as st
 from dinamica import (betas_para_transmisibilidad, curva_TR,
                       eficiencia_aislamiento, rigidez_serie, transmisibilidad)
 
+from ..formato import FORMATO_ENTRADA
 from ..estado import Proyecto
 from ..widgets import fila_de_resultados, figura
 from .portico import aplicar_x, mostrar_mensaje_x
@@ -32,7 +33,7 @@ def dibujar(proyecto: Proyecto) -> None:
 
     zeta = st.number_input("ζ para los cálculos [%]",
                            value=float(proyecto.zeta_valor * 100),
-                           min_value=0.0, max_value=99.0, format="%.4f",
+                           min_value=0.0, max_value=99.0, format=FORMATO_ENTRADA,
                            key="tr_zeta") / 100
 
     _calculadora_beta(zeta)
@@ -46,7 +47,7 @@ def dibujar(proyecto: Proyecto) -> None:
 def _calculadora_beta(zeta: float) -> None:
     st.markdown("**β asociados a un TR objetivo**")
     objetivo = st.number_input("TR objetivo", value=0.30, min_value=1e-6,
-                               format="%.5f", key="tr_obj")
+                               format=FORMATO_ENTRADA, key="tr_obj")
     try:
         raices = betas_para_transmisibilidad(objetivo, zeta)
     except ValueError as exc:
@@ -88,7 +89,8 @@ def _grafica(zeta: float) -> None:
         puntos.append((list(raices), [objetivo] * len(raices),
                        f"β para TR = {objetivo:.3g}"))
 
-    figura(series, "β = ω/ωₙ", "TR", vertical=math.sqrt(2), puntos=puntos)
+    figura(series, "β = ω/ωₙ", "TR", vertical=math.sqrt(2),
+           puntos=puntos, clave="graf_tr")
     st.caption("Note que pasado β = √2 las curvas se INVIERTEN: más "
                "amortiguamiento da peor aislamiento. Es el compromiso clásico "
                "entre controlar la resonancia al arrancar la máquina y aislar "
@@ -109,10 +111,10 @@ def _diseno_aislamiento(proyecto: Proyecto, zeta: float) -> None:
 
     col_tr, col_w, col_n = st.columns(3)
     objetivo = col_tr.number_input("TR objetivo", value=0.30, min_value=1e-9,
-                                   max_value=0.999999, format="%.5f",
+                                   max_value=0.999999, format=FORMATO_ENTRADA,
                                    key="iso_tr")
     w = col_w.number_input("w — frecuencia de la excitación [rad/s]",
-                           value=20.0, min_value=1e-9, format="%.5f", key="iso_w")
+                           value=20.0, min_value=1e-9, format=FORMATO_ENTRADA, key="iso_w")
     n_apoyos = col_n.number_input("Número de aisladores", value=4, min_value=1,
                                   step=1, key="iso_n")
 
@@ -159,7 +161,7 @@ def _diseno_aislamiento(proyecto: Proyecto, zeta: float) -> None:
 
     K_aisladores = st.number_input(
         "K del conjunto de aisladores [N/m]", value=float(K_total * 2),
-        min_value=1e-9, format="%.4f", key="iso_ka",
+        min_value=1e-9, format=FORMATO_ENTRADA, key="iso_ka",
         help="Debe ser mayor que K_total: en serie, el conjunto siempre es más "
              "flexible que cualquiera de sus partes.")
 

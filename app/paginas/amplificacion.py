@@ -18,6 +18,7 @@ import streamlit as st
 
 from dinamica import Rd_maximo, beta_para_Rd, beta_resonante, curva_Rd
 
+from ..formato import FORMATO_ENTRADA
 from ..estado import Proyecto
 from ..widgets import fila_de_resultados, figura
 from .portico import aplicar_x, mostrar_mensaje_x
@@ -35,7 +36,7 @@ def dibujar(proyecto: Proyecto) -> None:
 
     zeta_objetivo = st.number_input(
         "ζ para los cálculos [%]", value=float(proyecto.zeta_valor * 100),
-        min_value=0.0, max_value=99.0, format="%.4f", key="rd_zeta") / 100
+        min_value=0.0, max_value=99.0, format=FORMATO_ENTRADA, key="rd_zeta") / 100
 
     _calculadora_beta(proyecto, zeta_objetivo)
     st.divider()
@@ -52,7 +53,7 @@ def _calculadora_beta(proyecto: Proyecto, zeta: float) -> None:
     col_obj, col_media = st.columns([2, 1])
     st.session_state.setdefault("rd_obj", 3.0)
     objetivo = col_obj.number_input(
-        "R_d objetivo", min_value=1e-6, format="%.5f", key="rd_obj")
+        "R_d objetivo", min_value=1e-6, format=FORMATO_ENTRADA, key="rd_obj")
     with col_media:
         st.markdown("&nbsp;", unsafe_allow_html=True)
         st.button("Usar R_máx/√2", width="stretch", key="rd_media",
@@ -110,7 +111,8 @@ def _grafica(proyecto: Proyecto, zeta: float) -> None:
         st.caption(f"El sistema actual tiene ωₙ = {s.omega_n:.4f} rad/s; el β "
                    "depende de la frecuencia de la carga que use en cada pestaña.")
 
-    figura(series, "β = ω/ωₙ", "R_d", puntos=puntos)
+    figura(series, "β = ω/ωₙ", "R_d", puntos=puntos,
+           clave="graf_rd")
 
 
 # ---------------------------------------------------------------------------
@@ -142,7 +144,7 @@ def _diseno(proyecto: Proyecto) -> None:
 
     w = col_w.number_input("w — frecuencia de la carga aplicada [rad/s]",
                            value=float(st.session_state.get("rd_w", 20.0)),
-                           min_value=1e-9, format="%.5f", key="rd_w")
+                           min_value=1e-9, format=FORMATO_ENTRADA, key="rd_w")
 
     s = proyecto.sistema()
     omega_n = w / beta

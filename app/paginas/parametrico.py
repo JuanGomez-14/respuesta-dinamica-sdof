@@ -15,6 +15,7 @@ import streamlit as st
 from dinamica import (CargaArmonica, barrido_carga, barrido_parametro,
                       hz_a_rad_s, rpm_a_rad_s)
 
+from ..formato import FORMATO_ENTRADA
 from ..estado import Proyecto
 from ..widgets import figura
 
@@ -39,10 +40,10 @@ def dibujar(proyecto: Proyecto) -> None:
 
     st.markdown("**Carga armónica de referencia**")
     col_p0, col_w, col_wu = st.columns(3)
-    p0 = col_p0.number_input("Amplitud p₀ [N]", value=1600.0, format="%.3f",
+    p0 = col_p0.number_input("Amplitud p₀ [N]", value=1600.0, format=FORMATO_ENTRADA,
                              key="par_p0")
     valor_w = col_w.number_input("Frecuencia de la carga", value=3.0,
-                                 min_value=1e-9, format="%.5f", key="par_w")
+                                 min_value=1e-9, format=FORMATO_ENTRADA, key="par_w")
     unidad_w = col_wu.selectbox("Unidad", ["rad/s", "Hz", "rpm"], key="par_wu")
     omega = {"rad/s": lambda v: v, "Hz": hz_a_rad_s,
              "rpm": rpm_a_rad_s}[unidad_w](valor_w)
@@ -56,9 +57,9 @@ def dibujar(proyecto: Proyecto) -> None:
               "zeta": s.zeta, "omega": omega}[parametro]
     col_min, col_max, col_n = st.columns(3)
     desde = col_min.number_input("Desde", value=float(actual) * 0.5,
-                                 format="%.6g", key="par_desde")
+                                 format=FORMATO_ENTRADA, key="par_desde")
     hasta = col_max.number_input("Hasta", value=float(actual) * 1.5,
-                                 format="%.6g", key="par_hasta")
+                                 format=FORMATO_ENTRADA, key="par_hasta")
     puntos = col_n.number_input("Número de valores", value=25, min_value=3,
                                 max_value=200, step=1, key="par_n")
 
@@ -102,7 +103,7 @@ def dibujar(proyecto: Proyecto) -> None:
         elegida = st.selectbox("Magnitud a graficar", columnas_y,
                                index=columnas_y.index(predeterminada), key="par_y")
         figura([(tabla[etiqueta_x], tabla[elegida], elegida)],
-               etiqueta_x, elegida)
+               etiqueta_x, elegida, clave="graf_parametrico")
 
     st.download_button(
         "Descargar la tabla (CSV)",

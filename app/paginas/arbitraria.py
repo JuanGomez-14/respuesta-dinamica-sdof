@@ -20,6 +20,7 @@ from dinamica import (CargaArbitraria, ExcitacionBase, espectro_respuesta,
                       periodos_logaritmicos, resolver, resolver_base)
 from dinamica.io_senales import leer_excel
 
+from ..formato import FORMATO_ENTRADA
 from ..estado import Proyecto
 from ..widgets import fila_de_resultados, figura
 
@@ -70,8 +71,8 @@ def dibujar(proyecto: Proyecto) -> None:
     t, y = datos
 
     col_u0, col_v0 = st.columns(2)
-    u0 = col_u0.number_input("u₀ [m]", value=0.0, format="%.5f", key="arb_u0")
-    v0 = col_v0.number_input("v₀ [m/s]", value=0.0, format="%.5f", key="arb_v0")
+    u0 = col_u0.number_input("u₀ [m]", value=0.0, format=FORMATO_ENTRADA, key="arb_u0")
+    v0 = col_v0.number_input("v₀ [m/s]", value=0.0, format=FORMATO_ENTRADA, key="arb_v0")
 
     dt = float(t[1] - t[0])
     if not np.allclose(np.diff(t), dt, rtol=0.05):
@@ -105,8 +106,10 @@ def dibujar(proyecto: Proyecto) -> None:
 
     etiqueta = "üg(t)" if tipo == "aceleracion" else "p(t)"
     figura([(t, y, etiqueta)], "Tiempo t [s]",
-           f"Aceleración [{unidad}]" if tipo == "aceleracion" else "Carga [N]")
-    figura([(r.t, r.u, "u(t) relativo")], "Tiempo t [s]", "Desplazamiento u [m]")
+           f"Aceleración [{unidad}]" if tipo == "aceleracion" else "Carga [N]",
+           clave="graf_arb_senal")
+    figura([(r.t, r.u, "u(t) relativo")], "Tiempo t [s]",
+           "Desplazamiento u [m]", clave="graf_arb_resp")
 
     if tipo == "aceleracion":
         st.divider()
@@ -123,7 +126,8 @@ def _espectro(excitacion, sistema) -> None:
     periodos = periodos_logaritmicos(0.05, 3.0, 80)
     espectro = espectro_respuesta(excitacion, zeta=sistema.zeta, periodos=periodos)
     figura([(espectro.periodos, espectro.Sd, "S_d")],
-           "Periodo T [s]", "S_d [m]", vertical=sistema.T_n)
+           "Periodo T [s]", "S_d [m]", vertical=sistema.T_n,
+           clave="graf_arb_espectro")
 
 
 # ---------------------------------------------------------------------------

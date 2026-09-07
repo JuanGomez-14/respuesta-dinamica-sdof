@@ -18,6 +18,7 @@ from dinamica import (CargaArmonica, Rd, angulo_fase, hz_a_rad_s,
                       resolver, respuesta_permanente_armonica, rpm_a_rad_s,
                       vector_tiempo)
 
+from ..formato import FORMATO_ENTRADA
 from ..estado import Proyecto
 from ..widgets import fila_de_resultados, figura
 
@@ -31,10 +32,10 @@ def dibujar(proyecto: Proyecto) -> None:
     st.subheader("Carga armónica  p(t) = p₀·sen(ω·t)")
 
     col_p0, col_frec, col_unidad = st.columns([2, 2, 2])
-    p0 = col_p0.number_input("Amplitud p₀ [N]", value=1600.0, format="%.3f",
+    p0 = col_p0.number_input("Amplitud p₀ [N]", value=1600.0, format=FORMATO_ENTRADA,
                              key="arm_p0")
     valor_frec = col_frec.number_input("Frecuencia de excitación", value=3.0,
-                                       min_value=1e-9, format="%.5f", key="arm_w")
+                                       min_value=1e-9, format=FORMATO_ENTRADA, key="arm_w")
     unidad_frec = col_unidad.selectbox("Unidad", ["rad/s", "Hz", "rpm"],
                                        key="arm_wu")
 
@@ -68,10 +69,11 @@ def dibujar(proyecto: Proyecto) -> None:
 
     _diagnostico(beta, s.zeta, s.omega_n, omega)
 
-    figura([(t, r.p, "p(t)")], "Tiempo t [s]", "Carga p [N]")
+    figura([(t, r.p, "p(t)")], "Tiempo t [s]", "Carga p [N]",
+           clave="graf_arm_carga")
     figura([(t, r.u, "u(t) total (numérica)"),
             (t, permanente.u, "u(t) permanente (analítica)")],
-           "Tiempo t [s]", "Desplazamiento u [m]")
+           "Tiempo t [s]", "Desplazamiento u [m]", clave="graf_arm_resp")
 
     # Verificación: la amplitud numérica del último tramo debe coincidir con la
     # analítica una vez extinguido el transitorio.
@@ -115,7 +117,7 @@ def _consulta_puntual(t, u) -> None:
     st.markdown("**Consultar u en un instante**")
     izquierda, derecha = st.columns([2, 3])
     instante = izquierda.number_input("t [s]", value=float(t[-1] / 2),
-                                      format="%.4f", key="arm_query",
+                                      format=FORMATO_ENTRADA, key="arm_query",
                                       min_value=float(t[0]), max_value=float(t[-1]))
     derecha.metric(f"u(t = {instante:.4f} s)",
                    f"{np.interp(instante, t, u):.6g} m")

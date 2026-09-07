@@ -18,6 +18,7 @@ from typing import Callable
 import matplotlib.pyplot as plt
 import streamlit as st
 
+from .formato import FORMATO_ENTRADA, numero
 from .estado import Magnitud
 
 __all__ = ["campo_con_unidad", "lista_editable", "tarjeta_resultado",
@@ -29,7 +30,7 @@ COLORES = ["#C8102E", "#12263A", "#00857C", "#E07A00", "#5A4FCF"]
 def campo_con_unidad(etiqueta: str, valor: float, unidad: str,
                      unidades: list[str], clave: str, *,
                      ayuda: str | None = None,
-                     formato: str = "%.4f",
+                     formato: str = FORMATO_ENTRADA,
                      minimo: float | None = 0.0) -> tuple[float, str]:
     """Número + selector de unidad, uno al lado del otro.
 
@@ -120,8 +121,10 @@ def lista_editable(elementos: list, render: Callable[[object, str], None], *,
 
 def tarjeta_resultado(etiqueta: str, valor, unidad: str = "",
                       ayuda: str | None = None) -> None:
-    """Una métrica destacada."""
-    texto = valor if isinstance(valor, str) else f"{valor:,.4g}"
+    """Una métrica destacada.
+
+    """
+    texto = valor if isinstance(valor, str) else numero(valor)
     st.metric(etiqueta, f"{texto} {unidad}".strip(), help=ayuda)
 
 
@@ -143,7 +146,39 @@ def mostrar_procedencia(magnitud: Magnitud, etiqueta: str = "") -> None:
     st.caption(f"{prefijo}{magnitud.detalle}")
 
 
-def figura(series: list[tuple], xlabel: str, ylabel: str, *,
+def _restablecer_ejes(clave_x: str, x: str, clave_y: str, y: str) -> None:
+    """Devuelve los ejes a su nombre original.
+
+    Como callback de ``on_click``, no en el cuerpo del script: Streamlit solo
+    deja escribir la clave de un widget antes de que este se instancie, y los
+    callbacks corren justo ahí, al principio del siguiente rerun.
+    """
+    st.session_state[clave_x] = x
+    st.session_state[clave_y] = y
+
+
+def _nombres_de_ejes(clave: str, xlabel: str, ylabel: str) -> tuple[str, str]:
+    """Controles para renombrar los ejes, junto a la propia gráfica.
+
+    Los nombres viven en el estado del widget: la clave del ``text_input`` ES
+    el almacenamiento, así que el valor persiste entre reruns sin necesidad de
+    sincronizar nada con el modelo.
+    """
+    clave_x, clave_y = f"{clave}_ejex", f"{clave}_ejey"
+    st.session_state.setdefault(clave_x, xlabel)
+    st.session_state.setdefault(clave_y, ylabel)
+
+    with st.popover("✏️ Nombres de los ejes"):
+        st.text_input("Eje horizontal", key=clave_x)
+        st.text_input("Eje vertical", key=clave_y)
+        st.button("Restablecer", key=f"{clave}_ejes_reset",
+                  on_click=_restablecer_ejes,
+                  args=(clave_x, xlabel, clave_y, ylabel))
+
+    return st.session_state[clave_x], st.session_state[clave_y]
+
+
+def figura(series: list[tuple], xlabel: str, ylabel: str, *, clave: str,
            titulo: str = "", logx: bool = False, logy: bool = False,
            vertical: float | None = None,
            puntos: list[tuple] | None = None):
@@ -151,7 +186,12 @@ def figura(series: list[tuple], xlabel: str, ylabel: str, *,
 
     ``series`` es una lista de ``(x, y, etiqueta)``; ``puntos`` una lista de
     ``(x, y, etiqueta)`` que se dibujan como marcadores destacados.
+
+    ``clave`` identifica la gráfica y debe ser única en toda la aplicación:
+    es la que separa los nombres de ejes de una gráfica de los de otra.
     """
+    xlabel, ylabel = _nombres_de_ejes(clave, xlabel, ylabel)
+
     fig, ax = plt.subplots(figsize=(9, 3.6))
     for indice, (x, y, etiqueta) in enumerate(series):
         ax.plot(x, y, label=etiqueta, lw=1.6,

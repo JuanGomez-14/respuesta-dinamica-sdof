@@ -14,6 +14,7 @@ import streamlit as st
 
 from dinamica import zeta_por_ancho_de_banda, zeta_por_decremento_logaritmico
 
+from ..formato import FORMATO_ENTRADA
 from ..estado import UNIDADES_MASA, UNIDADES_RIGIDEZ, Proyecto
 from ..widgets import campo_con_unidad, mostrar_procedencia
 
@@ -57,15 +58,15 @@ def _masa(proyecto: Proyecto) -> None:
     if proyecto.masa_modo == "directa":
         proyecto.masa_valor, proyecto.masa_unidad = campo_con_unidad(
             "Masa (o peso)", proyecto.masa_valor, proyecto.masa_unidad,
-            UNIDADES_MASA, "sb_masa", formato="%.2f",
+            UNIDADES_MASA, "sb_masa", formato=FORMATO_ENTRADA,
             ayuda="Si elige N, kN o kgf se interpreta como PESO y se divide por g.")
     else:
         proyecto.masa_carga = st.number_input(
             "Carga distribuida q [kN/m²]", value=float(proyecto.masa_carga),
-            min_value=0.0, format="%.3f", key="sb_q")
+            min_value=0.0, format=FORMATO_ENTRADA, key="sb_q")
         proyecto.masa_area = st.number_input(
             "Área tributaria A [m²]", value=float(proyecto.masa_area),
-            min_value=0.0, format="%.3f", key="sb_area")
+            min_value=0.0, format=FORMATO_ENTRADA, key="sb_area")
 
     mostrar_procedencia(proyecto.masa())
 
@@ -88,11 +89,11 @@ def _rigidez(proyecto: Proyecto) -> None:
     if proyecto.rigidez_modo == "directa":
         proyecto.rigidez_valor, proyecto.rigidez_unidad = campo_con_unidad(
             "Rigidez k", proyecto.rigidez_valor, proyecto.rigidez_unidad,
-            UNIDADES_RIGIDEZ, "sb_k", formato="%.2f")
+            UNIDADES_RIGIDEZ, "sb_k", formato=FORMATO_ENTRADA)
     elif proyecto.rigidez_modo == "periodo":
         st.session_state.setdefault("sb_Tn", float(proyecto.periodo_objetivo))
         proyecto.periodo_objetivo = st.number_input(
-            "Periodo natural Tₙ [s]", min_value=1e-4, format="%.5f", key="sb_Tn")
+            "Periodo natural Tₙ [s]", min_value=1e-4, format=FORMATO_ENTRADA, key="sb_Tn")
     else:
         st.caption("Se toma del constructor de la pestaña **Pórtico → K**. "
                    "Cualquier cambio allí se refleja aquí de inmediato.")
@@ -109,7 +110,7 @@ def _amortiguamiento(proyecto: Proyecto) -> None:
     st.session_state.setdefault("sb_zeta", proyecto.zeta_valor * 100)
     porcentaje = st.number_input(
         "ζ [% del crítico]", min_value=0.0, max_value=99.0, step=0.5,
-        format="%.4f", key="sb_zeta")
+        format=FORMATO_ENTRADA, key="sb_zeta")
     # Si el usuario mueve el número a mano, la procedencia vuelve a "directa".
     if abs(porcentaje / 100 - proyecto.zeta_valor) > 1e-12:
         proyecto.fijar_zeta(porcentaje / 100, "directa")
@@ -126,9 +127,9 @@ def _zeta_decremento(proyecto: Proyecto) -> None:
     st.markdown("**Decremento logarítmico** (dos picos de vibración libre)")
     col_a, col_b, col_n = st.columns(3)
     u1 = col_a.number_input("Pico uₙ", value=12.0, min_value=1e-9,
-                            format="%.5f", key="dec_u1")
+                            format=FORMATO_ENTRADA, key="dec_u1")
     u2 = col_b.number_input("Pico uₙ₊ₘ", value=8.4, min_value=1e-9,
-                            format="%.5f", key="dec_u2")
+                            format=FORMATO_ENTRADA, key="dec_u2")
     m = col_n.number_input("Ciclos m", value=1, min_value=1, step=1, key="dec_m")
 
     if u2 >= u1:
@@ -149,11 +150,11 @@ def _zeta_ancho_de_banda(proyecto: Proyecto) -> None:
     st.markdown("**Ancho de banda de media potencia** (de una curva de respuesta)")
     col_a, col_b, col_r = st.columns(3)
     f_a = col_a.number_input("f₁ [Hz]", value=1.90, min_value=0.0,
-                             format="%.5f", key="ab_fa")
+                             format=FORMATO_ENTRADA, key="ab_fa")
     f_b = col_b.number_input("f₂ [Hz]", value=2.10, min_value=0.0,
-                             format="%.5f", key="ab_fb")
+                             format=FORMATO_ENTRADA, key="ab_fb")
     f_r = col_r.number_input("f resonante [Hz]", value=2.00, min_value=1e-9,
-                             format="%.5f", key="ab_fr")
+                             format=FORMATO_ENTRADA, key="ab_fr")
     if f_b <= f_a:
         st.info("f₂ debe ser mayor que f₁.")
         return

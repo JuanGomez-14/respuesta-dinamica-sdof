@@ -196,3 +196,117 @@ class TestPaginasPesadas:
         prueba = arrancar()
         prueba.radio(key="arb_origen").set_value("ejemplo").run()
         assert not prueba.exception
+
+
+class TestFormatoDeNumeros:
+    """Los campos no deben rellenar con ceros y los resultados deben leerse bien."""
+
+    def test_los_campos_no_fuerzan_decimales(self):
+        """Escribir 24 debe verse «24», no «24,0000»."""
+        from app.formato import FORMATO_ENTRADA
+        assert FORMATO_ENTRADA % 24.0 == "24"
+        assert FORMATO_ENTRADA % 5.0 == "5"
+        assert FORMATO_ENTRADA % 0.34 == "0.34"
+
+    def test_los_campos_no_pasan_a_notacion_cientifica_con_rigideces(self):
+        from app.formato import FORMATO_ENTRADA
+        assert "e" not in (FORMATO_ENTRADA % 8266635.57)
+
+    def test_los_resultados_llevan_separador_de_miles(self):
+        from app.formato import numero
+        assert numero(12236.6) == "12.237"
+        assert numero(8266635.57) == "8.266.636"
+
+    def test_los_valores_pequenos_conservan_cifras_significativas(self):
+        """0,0003829 no debe redondearse a 0,0004."""
+        from app.formato import numero
+        assert numero(0.0003829) == "0,0003829"
+
+    def test_la_procedencia_de_la_masa_se_lee_bien(self):
+        proyecto = Proyecto(masa_modo="carga", masa_carga=5.0, masa_area=24.0)
+        detalle = proyecto.masa().detalle
+        assert "5 kN/m²" in detalle and "24 m²" in detalle   # sin ceros de relleno
+        assert "12.237 kg" in detalle                        # con separador
+
+
+class TestRenombrarEjes:
+    """Cada gráfica se renombra en su sitio, no desde un panel aparte."""
+
+    def test_cada_grafica_ofrece_sus_dos_campos_de_eje(self):
+        prueba = arrancar()
+        claves = {c.key for c in prueba.text_input if c.key}
+        for grafica in ["graf_libre_resp", "graf_arm_carga", "graf_arm_resp",
+                        "graf_imp_carga", "graf_imp_resp", "graf_rd", "graf_tr"]:
+            assert f"{grafica}_ejex" in claves, f"falta el eje X de {grafica}"
+            assert f"{grafica}_ejey" in claves, f"falta el eje Y de {grafica}"
+
+    def test_los_ejes_arrancan_con_su_nombre_por_defecto(self):
+        prueba = arrancar()
+        assert prueba.session_state["graf_libre_resp_ejex"] == "Tiempo t [s]"
+        assert prueba.session_state["graf_libre_resp_ejey"] == "Desplazamiento u [m]"
+
+    def test_renombrar_un_eje_no_afecta_a_las_demas_graficas(self):
+        """Cada gráfica es independiente: por eso cada una lleva su clave."""
+        prueba = arrancar()
+        prueba.text_input(key="graf_libre_resp_ejey").set_value("Flecha δ [mm]").run()
+        assert not prueba.exception
+        assert prueba.session_state["graf_libre_resp_ejey"] == "Flecha δ [mm]"
+        # la de carga armónica sigue intacta
+        assert prueba.session_state["graf_arm_resp_ejey"] == "Desplazamiento u [m]"
+
+    def test_el_nombre_editado_llega_a_la_grafica(self):
+        """Se comprueba sobre la figura de matplotlib, no solo sobre el estado."""
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import streamlit as st
+
+        prueba = arrancar()
+        prueba.text_input(key="graf_libre_resp_ejey").set_value("Flecha δ [mm]").run()
+
+        ejes_dibujados = []
+        original = st.pyplot
+
+        def espiar(fig, *a, **k):
+            for ax in fig.axes:
+                ejes_dibujados.append(ax.get_ylabel())
+            return None
+
+        st.pyplot = espiar
+        try:
+            prueba.run()
+        finally:
+            st.pyplot = original
+            plt.close("all")
+
+        assert "Flecha δ [mm]" in ejes_dibujados
+
+    def test_restablecer_devuelve_el_nombre_original(self):
+        prueba = arrancar()
+        prueba.text_input(key="graf_libre_resp_ejex").set_value("t").run()
+        assert prueba.session_state["graf_libre_resp_ejex"] == "t"
+        prueba.button(key="graf_libre_resp_ejes_reset").click().run()
+        assert prueba.session_state["graf_libre_resp_ejex"] == "Tiempo t [s]"
+
+
+class TestTextoDeProcedencia:
+    """El rastro de cada valor se copia al taller: tiene que leerse bien."""
+
+    def test_no_repite_el_mismo_valor_dos_veces(self):
+        """«m = 24.000 kg = 24.000 kg» no aporta nada."""
+        detalle = Proyecto(masa_valor=24000, masa_unidad="kg").masa().detalle
+        assert detalle.count("24.000 kg") == 1
+
+    def test_ofrece_la_equivalencia_corta_cuando_el_numero_es_largo(self):
+        assert Proyecto(masa_valor=24000, masa_unidad="kg").masa().detalle == \
+            "m = 24.000 kg = 24 t"
+        assert Proyecto(rigidez_valor=8266600, rigidez_unidad="N/m").rigidez().detalle == \
+            "k = 8.266.600 N/m = 8.267 kN/m"
+
+    def test_no_cambia_de_unidad_si_el_numero_ya_es_comodo(self):
+        assert Proyecto(rigidez_valor=500, rigidez_unidad="N/m").rigidez().detalle == \
+            "k = 500 N/m"
+
+    def test_el_peso_conserva_la_division_por_g(self):
+        detalle = Proyecto(masa_valor=100, masa_unidad="kN").masa().detalle
+        assert "W/g" in detalle and "9,80665" in detalle

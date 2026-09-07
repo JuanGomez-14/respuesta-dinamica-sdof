@@ -16,6 +16,7 @@ import streamlit as st
 
 from dinamica import formatear_polinomio, resolver_x_para_rigidez
 
+from ..formato import FORMATO_ENTRADA
 from ..estado import (CONDICIONES_ETIQUETA, UNIDADES_AREA, UNIDADES_E,
                       UNIDADES_I, UNIDADES_LONGITUD, Columna, Nivel, Proyecto,
                       Riostra)
@@ -118,10 +119,10 @@ def _render_columna(col: Columna, clave: str) -> None:
 
     col.E, col.E_unidad = campo_con_unidad(
         "Módulo de elasticidad E", col.E, col.E_unidad, UNIDADES_E,
-        f"{clave}_E", formato="%.4f")
+        f"{clave}_E", formato=FORMATO_ENTRADA)
     col.H, col.H_unidad = campo_con_unidad(
         "Altura libre H", col.H, col.H_unidad, UNIDADES_LONGITUD,
-        f"{clave}_H", formato="%.4f", minimo=1e-9)
+        f"{clave}_H", formato=FORMATO_ENTRADA, minimo=1e-9)
 
     condiciones = list(CONDICIONES_ETIQUETA)
     col.condicion = st.selectbox(
@@ -139,18 +140,18 @@ def _render_columna(col: Columna, clave: str) -> None:
     if col.modo_seccion == "I":
         col.I, col.I_unidad = campo_con_unidad(
             "Inercia I", col.I, col.I_unidad, UNIDADES_I, f"{clave}_I",
-            formato="%.5f", minimo=1e-12)
+            formato=FORMATO_ENTRADA, minimo=1e-12)
     else:
         izquierda, derecha = st.columns(2)
         with izquierda:
             col.b = st.number_input("b (ancho)", value=float(col.b),
-                                    min_value=1e-9, format="%.5f", key=f"{clave}_b")
+                                    min_value=1e-9, format=FORMATO_ENTRADA, key=f"{clave}_b")
             col.b_simbolica = st.checkbox(
                 "b es coeficiente de x", value=col.b_simbolica, key=f"{clave}_bs",
                 help="Marcado, el valor multiplica a la incógnita: b = valor·x")
         with derecha:
             col.h = st.number_input("h (peralte)", value=float(col.h),
-                                    min_value=1e-9, format="%.5f", key=f"{clave}_h")
+                                    min_value=1e-9, format=FORMATO_ENTRADA, key=f"{clave}_h")
             col.h_simbolica = st.checkbox(
                 "h es coeficiente de x", value=col.h_simbolica, key=f"{clave}_hs")
         col.bh_unidad = st.selectbox(
@@ -173,15 +174,15 @@ def _render_riostra(rio: Riostra, clave: str) -> None:
                                 min_value=1, step=1, key=f"{clave}_n"))
     rio.A, rio.A_unidad = campo_con_unidad(
         "Área A", rio.A, rio.A_unidad, UNIDADES_AREA, f"{clave}_A",
-        formato="%.5f", minimo=1e-12)
+        formato=FORMATO_ENTRADA, minimo=1e-12)
     rio.E, rio.E_unidad = campo_con_unidad(
-        "Módulo E", rio.E, rio.E_unidad, UNIDADES_E, f"{clave}_E", formato="%.4f")
+        "Módulo E", rio.E, rio.E_unidad, UNIDADES_E, f"{clave}_E", formato=FORMATO_ENTRADA)
 
     izquierda, derecha = st.columns(2)
     rio.L_h = izquierda.number_input("Proyección horizontal L_h", value=float(rio.L_h),
-                                     min_value=1e-9, format="%.4f", key=f"{clave}_Lh")
+                                     min_value=1e-9, format=FORMATO_ENTRADA, key=f"{clave}_Lh")
     rio.L_v = derecha.number_input("Proyección vertical L_v", value=float(rio.L_v),
-                                   min_value=1e-9, format="%.4f", key=f"{clave}_Lv")
+                                   min_value=1e-9, format=FORMATO_ENTRADA, key=f"{clave}_Lv")
     rio.L_unidad = st.selectbox("Unidad de L_h y L_v", UNIDADES_LONGITUD,
                                 index=UNIDADES_LONGITUD.index(rio.L_unidad),
                                 key=f"{clave}_Lu")
@@ -213,7 +214,7 @@ def _resultado(proyecto: Proyecto) -> None:
                 "evaluar K, o despeje la x que produce una rigidez objetivo.")
         st.session_state.setdefault("portico_x", float(proyecto.x_actual))
         proyecto.x_actual = st.number_input(
-            "Valor de x [m]", min_value=1e-9, format="%.5f", key="portico_x")
+            "Valor de x [m]", min_value=1e-9, format=FORMATO_ENTRADA, key="portico_x")
 
     try:
         K = proyecto.rigidez_portico()
@@ -223,7 +224,7 @@ def _resultado(proyecto: Proyecto) -> None:
 
     fila_de_resultados([
         ("K equivalente", K, "N/m"),
-        ("K equivalente", K / 1e3, "kN/m"),
+        ("K equivalente en kN/m", K / 1e3, "kN/m"),
         ("Niveles en serie", len(proyecto.niveles), ""),
     ])
 
@@ -247,7 +248,7 @@ def _despejar_x(proyecto: Proyecto) -> None:
     izquierda, derecha = st.columns([2, 1])
     objetivo = izquierda.number_input(
         "K objetivo", value=float(proyecto.rigidez_portico()), min_value=1e-9,
-        format="%.4f", key="portico_Kobj")
+        format=FORMATO_ENTRADA, key="portico_Kobj")
     unidad = derecha.selectbox("Unidad", ["N/m", "kN/m"], key="portico_Kobj_u")
 
     K_SI = objetivo * (1e3 if unidad == "kN/m" else 1.0)

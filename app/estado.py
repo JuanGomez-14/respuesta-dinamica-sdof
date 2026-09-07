@@ -30,6 +30,20 @@ from dinamica import (SistemaSDOF, a_si, formatear_polinomio,
                       rigidez_columna_polinomio, rigidez_riostra,
                       rigidez_serie_niveles, sumar_polinomios)
 
+from .formato import compacto, con_unidad, numero
+
+
+def _en_si(valor: float, unidad: str) -> str:
+    """El valor en la unidad del motor, más su equivalente corto si aporta.
+
+    Evita el texto redundante del tipo «24.000 kg = 24.000 kg»: la segunda
+    forma solo aparece cuando de verdad se lee mejor (24 t), y nunca repite el
+    dato que el usuario ya está viendo en el campo de entrada.
+    """
+    exacto = con_unidad(valor, unidad)
+    corto = compacto(valor, unidad)
+    return exacto if corto == exacto else f"{exacto} = {corto}"
+
 __all__ = ["Magnitud", "Columna", "Riostra", "Nivel", "Proyecto",
            "UNIDADES_E", "UNIDADES_I", "UNIDADES_LONGITUD", "UNIDADES_AREA",
            "UNIDADES_MASA", "UNIDADES_RIGIDEZ", "CONDICIONES_ETIQUETA"]
@@ -222,6 +236,10 @@ class Proyecto:
     # --- parámetros de excitación por pestaña -------------------------
     cargas: dict = field(default_factory=dict)
 
+    # --- nombres personalizados de las variables ----------------------
+    # {etiqueta_por_defecto: nombre_del_usuario}; ver app.etiquetas
+    etiquetas: dict = field(default_factory=dict)
+
     # ------------------------------------------------------------------
     #  Masa
     # ------------------------------------------------------------------
@@ -232,18 +250,18 @@ class Proyecto:
             peso_N = self.masa_carga * 1e3 * self.masa_area
             m = peso_N / 9.80665
             return Magnitud(m, "desde carga distribuida",
-                            f"W = q·A = {self.masa_carga:g} kN/m² × "
-                            f"{self.masa_area:g} m² = {peso_N / 1e3:.4g} kN  →  "
-                            f"m = W/g = {m:.6g} kg")
+                            f"W = q·A = {numero(self.masa_carga)} kN/m² × "
+                            f"{numero(self.masa_area)} m² = "
+                            f"{numero(peso_N / 1e3)} kN  →  "
+                            f"m = W/g = {_en_si(m, 'kg')}")
         m = a_si(self.masa_valor, self.masa_unidad)
         if self.masa_unidad in ("N", "kN", "kgf"):
             # El usuario escribió un PESO; se convierte a masa dividiendo por g.
             m = m / 9.80665
             return Magnitud(m, "desde peso",
-                            f"m = W/g = {self.masa_valor:g} {self.masa_unidad} / "
-                            f"9.80665 = {m:.6g} kg")
-        return Magnitud(m, "directa",
-                        f"m = {self.masa_valor:g} {self.masa_unidad} = {m:.6g} kg")
+                            f"m = W/g = {numero(self.masa_valor)} "
+                            f"{self.masa_unidad} / 9,80665 = {_en_si(m, 'kg')}")
+        return Magnitud(m, "directa", f"m = {_en_si(m, 'kg')}")
 
     # ------------------------------------------------------------------
     #  Pórtico
@@ -277,20 +295,20 @@ class Proyecto:
             detalle = (f"{n} nivel(es){serie}, columnas y riostras de cada nivel "
                        f"en paralelo")
             if self.es_simbolico():
-                detalle += f", evaluado en x = {self.x_actual:g} m"
-            return Magnitud(k, "desde el pórtico", detalle + f"  →  k = {k:.6g} N/m")
+                detalle += f", evaluado en x = {numero(self.x_actual)} m"
+            return Magnitud(k, "desde el pórtico",
+                            detalle + f"  →  k = {_en_si(k, 'N/m')}")
 
         if self.rigidez_modo == "periodo":
             m = float(self.masa())
             k = m * (2 * math.pi / self.periodo_objetivo) ** 2
             return Magnitud(k, "desde el periodo",
-                            f"k = m·(2π/Tₙ)² = {m:.6g}·(2π/{self.periodo_objetivo:g})² "
-                            f"= {k:.6g} N/m")
+                            f"k = m·(2π/Tₙ)² = {numero(m)}·"
+                            f"(2π/{numero(self.periodo_objetivo)})² "
+                            f"= {_en_si(k, 'N/m')}")
 
         k = a_si(self.rigidez_valor, self.rigidez_unidad)
-        return Magnitud(k, "directa",
-                        f"k = {self.rigidez_valor:g} {self.rigidez_unidad} "
-                        f"= {k:.6g} N/m")
+        return Magnitud(k, "directa", f"k = {_en_si(k, 'N/m')}")
 
     # ------------------------------------------------------------------
     #  Amortiguamiento
@@ -298,8 +316,9 @@ class Proyecto:
     def zeta(self) -> Magnitud:
         """Fracción de amortiguamiento crítico, con su procedencia."""
         return Magnitud(self.zeta_valor, self.zeta_procedencia,
-                        self.zeta_detalle or f"ζ = {self.zeta_valor:.4g} "
-                                             f"({self.zeta_valor * 100:.3g} %)")
+                        self.zeta_detalle or
+                        f"ζ = {numero(self.zeta_valor)} "
+                        f"({numero(self.zeta_valor * 100)} %)")
 
     def fijar_zeta(self, valor: float, procedencia: str, detalle: str = "") -> None:
         """Registra un ζ obtenido por un procedimiento (decremento, ancho de banda)."""

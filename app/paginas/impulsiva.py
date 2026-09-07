@@ -15,6 +15,7 @@ import streamlit as st
 from dinamica import (PulsoExponencial, PulsoRectangular, PulsoSemiseno,
                       PulsoTriangular, resolver)
 
+from ..formato import FORMATO_ENTRADA
 from ..estado import Proyecto
 from ..widgets import fila_de_resultados, figura
 
@@ -45,10 +46,10 @@ def dibujar(proyecto: Proyecto) -> None:
                      horizontal=True, key="imp_forma")
 
     col_p0, col_td, col_ciclos = st.columns(3)
-    p0 = col_p0.number_input("Amplitud p₀ [N]", value=150_000.0, format="%.3f",
+    p0 = col_p0.number_input("Amplitud p₀ [N]", value=150_000.0, format=FORMATO_ENTRADA,
                              key="imp_p0")
     td = col_td.number_input("Duración t_d [s]", value=0.05, min_value=1e-6,
-                             format="%.5f", key="imp_td")
+                             format=FORMATO_ENTRADA, key="imp_td")
     ciclos = col_ciclos.number_input("Ciclos libres tras el pulso", value=6,
                                      min_value=1, step=1, key="imp_ciclos")
 
@@ -71,9 +72,10 @@ def dibujar(proyecto: Proyecto) -> None:
         ("Ocurre en t", r.t_u_max, "s"),
     ])
 
-    figura([(r.t, r.p, "p(t)")], "Tiempo t [s]", "Carga p [N]")
+    figura([(r.t, r.p, "p(t)")], "Tiempo t [s]", "Carga p [N]",
+           clave="graf_imp_carga")
     figura([(r.t, r.u, "u(t)")], "Tiempo t [s]", "Desplazamiento u [m]",
-           vertical=None)
+           clave="graf_imp_resp")
 
     error = abs(r.u_max - u_aprox) / u_aprox * 100 if u_aprox else float("nan")
     st.markdown("**Verificación contra impulso–cantidad de movimiento**")
@@ -99,7 +101,7 @@ def dibujar(proyecto: Proyecto) -> None:
     st.markdown("**Consultar u en un instante**")
     izquierda, derecha = st.columns([2, 3])
     instante = izquierda.number_input(
-        "t [s]", value=float(r.t[-1] / 2), format="%.4f", key="imp_query",
+        "t [s]", value=float(r.t[-1] / 2), format=FORMATO_ENTRADA, key="imp_query",
         min_value=float(r.t[0]), max_value=float(r.t[-1]))
     derecha.metric(f"u(t = {instante:.4f} s)",
                    f"{np.interp(instante, r.t, r.u):.6g} m")
